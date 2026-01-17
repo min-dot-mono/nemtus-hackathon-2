@@ -7,6 +7,12 @@ import {
   clearAllData,
   type UserAccount,
 } from '@/lib/storage';
+import {
+  WarningTriangle,
+  Check,
+  RefreshDouble,
+  LightBulb,
+} from 'iconoir-react';
 
 // グローバル投稿の型
 interface GlobalPost {
@@ -381,10 +387,11 @@ export default function Home() {
                   Explorer で見る →
                 </a>
                 {balance === 0n && (
-                  <p className="text-xs text-yellow-500 mt-2">
-                    ⚠️ 残高がありません。
+                  <p className="text-xs text-yellow-500 mt-2 flex items-center gap-1">
+                    <WarningTriangle className="w-3 h-3" />
+                    残高がありません。
                     <a href="https://testnet.symbol.tools/" target="_blank" rel="noopener noreferrer" className="underline ml-1">
-                      Faucetで取得 →
+                      Faucetで取得
                     </a>
                   </p>
                 )}
@@ -443,7 +450,9 @@ export default function Home() {
         {showConfirm && (
           <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
             <div className="bg-zinc-900 rounded-xl p-6 max-w-md w-full border-2 border-red-600 shadow-2xl shadow-red-900/30">
-              <div className="text-center mb-4"><span className="text-4xl">⚠️</span></div>
+              <div className="text-center mb-4">
+                <WarningTriangle className="w-12 h-12 text-red-500 mx-auto" />
+              </div>
               <h2 className="text-2xl font-bold text-red-600 mb-4 text-center">本当に投稿しますか？</h2>
               <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 mb-4">
                 <p className="text-red-300 text-sm text-center">
@@ -461,7 +470,7 @@ export default function Home() {
                   disabled={isPosting}
                   className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-900 text-white py-3 px-4 rounded-lg font-bold transition-all"
                 >
-                  {isPosting ? <span className="flex items-center justify-center gap-2"><span className="animate-spin">⏳</span>記録中...</span> : '覚悟を決めて投稿'}
+                  {isPosting ? <span className="flex items-center justify-center gap-2"><RefreshDouble className="w-4 h-4 animate-spin" />記録中...</span> : '覚悟を決めて投稿'}
                 </button>
               </div>
             </div>
@@ -471,7 +480,9 @@ export default function Home() {
         {showSuccess && (
           <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
             <div className="bg-zinc-900 rounded-xl p-8 max-w-md w-full border-2 border-green-600 shadow-2xl shadow-green-900/30 text-center">
-              <div className="text-6xl mb-4 animate-bounce">✓</div>
+              <div className="mb-4 animate-bounce">
+                <Check className="w-16 h-16 text-green-500 mx-auto" />
+              </div>
               <h2 className="text-2xl font-bold text-green-500 mb-2">ブロックチェーンに記録されました</h2>
               <p className="text-zinc-400 text-sm mb-4">この投稿は永久に保存されます</p>
               <div className="bg-black p-3 rounded-lg border border-zinc-700">
@@ -559,10 +570,13 @@ export default function Home() {
         </div>
 
         <div className="mt-8 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-          <p className="text-zinc-500 text-sm text-center">
-            💡 すべての投稿はブロックチェーンに記録され、<br />
-            <span className="text-red-400 font-bold">誰にも削除・編集できません</span>
-          </p>
+          <div className="flex items-center justify-center gap-2 text-zinc-500 text-sm">
+            <LightBulb className="w-4 h-4" />
+            <p className="text-center">
+              すべての投稿はブロックチェーンに記録され、<br />
+              <span className="text-red-400 font-bold">誰にも削除・編集できません</span>
+            </p>
+          </div>
         </div>
       </main>
 
