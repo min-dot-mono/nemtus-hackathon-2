@@ -434,14 +434,20 @@ export default function Home() {
             <p className="text-sm font-mono text-zinc-300 break-all">
               {account.address}
             </p>
-            <a
-              href={`https://testnet.symbol.fyi/accounts/${account.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-red-500 hover:underline inline-flex items-center gap-1 mt-2"
-            >
-              Explorer で見る →
-            </a>
+            {demoMode ? (
+              <p className="text-xs text-zinc-600 mt-2">
+                デモモード - 実際のブロックチェーンには記録されません
+              </p>
+            ) : (
+              <a
+                href={`https://testnet.symbol.fyi/accounts/${account.address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-red-500 hover:underline inline-flex items-center gap-1 mt-2"
+              >
+                Explorer で見る →
+              </a>
+            )}
           </div>
         )}
 
