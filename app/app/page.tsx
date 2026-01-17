@@ -4,12 +4,17 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getUserAccount,
   saveUserAccount,
-  getLocalPosts,
-  addLocalPost,
   clearAllData,
   type UserAccount,
-  type Post,
 } from '@/lib/storage';
+
+// グローバル投稿の型
+interface GlobalPost {
+  hash: string;
+  signerPublicKey: string;
+  message: string;
+  timestamp: string;
+}
 
 // デモ用プリセット文章
 const PRESET_MESSAGES = [
@@ -21,7 +26,7 @@ const PRESET_MESSAGES = [
 
 export default function Home() {
   const [account, setAccount] = useState<UserAccount | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<GlobalPost[]>([]);
   const [newPost, setNewPost] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -36,6 +41,7 @@ export default function Home() {
   const [successHash, setSuccessHash] = useState('');
   const [showPresenterGuide, setShowPresenterGuide] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
 
   // プレゼンターガイドのステップ
   const presenterSteps = [
@@ -85,6 +91,23 @@ export default function Home() {
     }
   }, [demoMode]);
 
+  // グローバル投稿一覧を取得
+  const fetchPosts = useCallback(async () => {
+    if (demoMode) return;
+    setIsLoadingPosts(true);
+    try {
+      const res = await fetch('/api/posts');
+      const data = await res.json();
+      if (data.posts) {
+        setPosts(data.posts);
+      }
+    } catch (e) {
+      console.error('Failed to fetch posts:', e);
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  }, [demoMode]);
+
   // 初期化
   useEffect(() => {
     const saved = getUserAccount();
@@ -96,13 +119,13 @@ export default function Home() {
     setIsLoading(false);
   }, []);
 
-  // アカウント変更時に残高取得
+  // アカウント変更時に残高・投稿一覧を取得
   useEffect(() => {
     if (account) {
       fetchBalance(account.address);
-      setPosts(getLocalPosts());
+      fetchPosts();
     }
-  }, [account, fetchBalance]);
+  }, [account, fetchBalance, fetchPosts]);
 
   // 新規アカウント作成
   const handleCreateAccount = async () => {
@@ -198,24 +221,18 @@ export default function Home() {
         hash = data.hash;
       }
 
-      const post: Post = {
-        hash,
-        message: newPost,
-        address: account.address,
-        timestamp: Date.now(),
-        likes: 0,
-      };
-      addLocalPost(post);
-      setPosts([post, ...posts]);
       setNewPost('');
       setShowConfirm(false);
       setSuccessHash(hash);
       setShowSuccess(true);
       if (showPresenterGuide) setCurrentStep(4);
 
-      // 残高更新
+      // 残高・投稿一覧を更新
       if (!demoMode) {
-        setTimeout(() => fetchBalance(account.address), 2000);
+        setTimeout(() => {
+          fetchBalance(account.address);
+          fetchPosts();
+        }, 3000);
       }
 
       setTimeout(() => setShowSuccess(false), 3000);
@@ -484,24 +501,47 @@ export default function Home() {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-zinc-300">投稿一覧</h2>
-            <p className="text-xs text-zinc-600">削除ボタンはありません</p>
+            <h2 className="text-lg font-bold text-zinc-300">グローバルフィード</h2>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => fetchPosts()}
+                disabled={isLoadingPosts}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                {isLoadingPosts ? '読み込み中...' : '更新'}
+              </button>
+              <p className="text-xs text-zinc-600">削除ボタンはありません</p>
+            </div>
           </div>
 
-          {posts.length === 0 ? (
+          {isLoadingPosts && posts.length === 0 ? (
+            <div className="text-center py-12 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <p className="text-zinc-500 text-lg animate-pulse">読み込み中...</p>
+            </div>
+          ) : posts.length === 0 ? (
             <div className="text-center py-12 bg-zinc-900/50 rounded-lg border border-zinc-800">
               <p className="text-zinc-500 text-lg">まだ投稿がありません</p>
               <p className="text-zinc-600 text-sm mt-2">最初の一歩を踏み出しましょう</p>
             </div>
           ) : (
-            posts.map((post) => (
-              <div key={post.hash} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 relative">
-                <div className="absolute -top-2 -right-2 bg-red-900 text-red-300 text-xs px-2 py-0.5 rounded-full border border-red-700">削除不可</div>
-                <p className="text-white whitespace-pre-wrap mb-4 text-lg leading-relaxed">{post.message}</p>
-                <div className="flex items-center justify-between text-xs text-zinc-500 pt-3 border-t border-zinc-800">
-                  <span>{new Date(post.timestamp).toLocaleString('ja-JP')}</span>
-                  <div className="flex items-center gap-4">
-                    {!post.hash.startsWith('DEMO_') && (
+            posts.map((post) => {
+              const isMyPost = account?.publicKey === post.signerPublicKey;
+              return (
+                <div key={post.hash} className={`bg-zinc-900 border rounded-lg p-4 relative ${isMyPost ? 'border-red-800' : 'border-zinc-800'}`}>
+                  <div className="absolute -top-2 -right-2 bg-red-900 text-red-300 text-xs px-2 py-0.5 rounded-full border border-red-700">削除不可</div>
+                  {isMyPost && (
+                    <div className="absolute -top-2 -left-2 bg-blue-900 text-blue-300 text-xs px-2 py-0.5 rounded-full border border-blue-700">自分</div>
+                  )}
+                  <p className="text-white whitespace-pre-wrap mb-4 text-lg leading-relaxed">{post.message}</p>
+                  <div className="flex items-center justify-between text-xs text-zinc-500 pt-3 border-t border-zinc-800">
+                    <div className="flex items-center gap-2">
+                      <span>{new Date(post.timestamp).toLocaleString('ja-JP')}</span>
+                      <span className="text-zinc-700">|</span>
+                      <span className="font-mono text-zinc-600" title={post.signerPublicKey}>
+                        {post.signerPublicKey.slice(0, 8)}...
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4">
                       <a
                         href={`https://testnet.symbol.fyi/transactions/${post.hash}`}
                         target="_blank"
@@ -510,11 +550,11 @@ export default function Home() {
                       >
                         TX →
                       </a>
-                    )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

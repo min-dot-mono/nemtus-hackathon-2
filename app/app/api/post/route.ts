@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { SymbolFacade, Network } from 'symbol-sdk/symbol';
 import { PrivateKey } from 'symbol-sdk';
+import { UNDO_CHANNEL_ADDRESS, NODE_URL, EPOCH_ADJUSTMENT } from '../../lib/constants';
 
 const NETWORK_TYPE = Network.TESTNET;
-const NODE_URL = 'https://sym-test-01.opening-line.jp:3001';
-const EPOCH_ADJUSTMENT = 1667250467;
 
 const facade = new SymbolFacade(NETWORK_TYPE);
 
@@ -27,13 +26,12 @@ export async function POST(request: Request) {
 
     const privateKey = new PrivateKey(privateKeyHex);
     const keyPair = new facade.static.KeyPair(privateKey);
-    const address = facade.network.publicKeyToAddress(keyPair.publicKey);
 
     const tx = facade.transactionFactory.create({
       type: 'transfer_transaction_v1',
       signerPublicKey: keyPair.publicKey,
       deadline: createDeadline(),
-      recipientAddress: address.toString(),
+      recipientAddress: UNDO_CHANNEL_ADDRESS,
       mosaics: [],
       message: new Uint8Array([0, ...new TextEncoder().encode(message)]),
     });

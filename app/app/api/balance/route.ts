@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const NODE_URL = 'https://sym-test-01.opening-line.jp:3001';
-const CURRENCY_MOSAIC_ID = '72C0212E67A08BCE';
+import { NODE_URL, CURRENCY_MOSAIC_ID } from '../../lib/constants';
 
 export async function GET(request: Request) {
   try {
