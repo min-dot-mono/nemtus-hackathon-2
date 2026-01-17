@@ -3,11 +3,22 @@ const KEYS = {
   POSTS: 'undo_posts',
 };
 
+export type NFTIcon = {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  chain?: 'symbol' | 'polygon'; // どのチェーンのNFTか
+  contractAddress?: string; // ERC-721の場合
+  tokenId?: string; // ERC-721の場合
+};
+
 export type UserAccount = {
   privateKey: string;
   publicKey: string;
   address: string;
   createdAt: number;
+  nftIcon?: NFTIcon;
+  evmAddress?: string; // Polygon/Ethereum ウォレットアドレス
 };
 
 export type Post = {

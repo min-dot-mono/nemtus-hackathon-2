@@ -1,42 +1,49 @@
 import { NextResponse } from 'next/server';
 import { SymbolFacade, Network, Address } from 'symbol-sdk/symbol';
 import { PrivateKey } from 'symbol-sdk';
-import { UNDO_CHANNEL_ADDRESS, NODE_URL, EPOCH_ADJUSTMENT } from '../../lib/constants';
+import { NODE_URL, EPOCH_ADJUSTMENT } from '../../lib/constants';
 
 const NETWORK_TYPE = Network.TESTNET;
-
 const facade = new SymbolFacade(NETWORK_TYPE);
+
+// いいね送金額（0.1 XYM = 100000 micro XYM）
+const LIKE_AMOUNT = 100000n;
+// XYMのモザイクID
+const XYM_MOSAIC_ID = 0x72C0212E67A08BCEn;
 
 function createDeadline() {
   const now = Math.floor(Date.now() / 1000);
   return BigInt((now - EPOCH_ADJUSTMENT + 7200) * 1000);
 }
 
-// 投稿作成
 export async function POST(request: Request) {
   try {
-    const { privateKey: privateKeyHex, message } = await request.json();
+    const { privateKey: privateKeyHex, recipientAddress, postHash } = await request.json();
 
-    if (!privateKeyHex || !message) {
+    if (!privateKeyHex || !recipientAddress || !postHash) {
       return NextResponse.json(
-        { error: 'Missing privateKey or message' },
+        { error: 'Missing privateKey, recipientAddress, or postHash' },
         { status: 400 }
       );
     }
 
     const privateKey = new PrivateKey(privateKeyHex);
     const keyPair = new facade.static.KeyPair(privateKey);
+    const recipient = new Address(recipientAddress);
 
-    const channelAddress = new Address(UNDO_CHANNEL_ADDRESS);
+    // いいねメッセージ（投稿のハッシュを含める）
+    const likeMessage = `LIKE:${postHash}`;
 
     const tx = facade.transactionFactory.create({
       type: 'transfer_transaction_v1',
       signerPublicKey: keyPair.publicKey,
       deadline: createDeadline(),
-      recipientAddress: channelAddress,
-      mosaics: [],
-      message: new Uint8Array([0, ...new TextEncoder().encode(message)]),
-      fee: 1000000n, // 1 XYM (十分な手数料)
+      recipientAddress: recipient,
+      mosaics: [
+        { mosaicId: XYM_MOSAIC_ID, amount: LIKE_AMOUNT }
+      ],
+      message: new Uint8Array([0, ...new TextEncoder().encode(likeMessage)]),
+      fee: 1000000n,
     });
 
     const signature = facade.signTransaction(keyPair, tx);
@@ -57,9 +64,9 @@ export async function POST(request: Request) {
       throw new Error(`Transaction failed: ${JSON.stringify(error)}`);
     }
 
-    return NextResponse.json({ hash, payload });
+    return NextResponse.json({ hash, amount: '0.1' });
   } catch (error) {
-    console.error('Post error:', error);
+    console.error('Like error:', error);
     return NextResponse.json(
       { error: String(error) },
       { status: 500 }
